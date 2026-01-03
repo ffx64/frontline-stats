@@ -1,0 +1,21 @@
+BEGIN;
+
+ALTER TABLE kill_logs RENAME TO kills;
+
+ALTER TABLE kills
+    RENAME COLUMN killer_weapon TO killer_weapon_name;
+
+ALTER TABLE kills
+    RENAME COLUMN victim_weapon TO victim_weapon_name;
+
+ALTER TABLE kills
+    ADD COLUMN IF NOT EXISTS victim_weapon_type VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS killer_weapon_type VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS hit_zone VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS is_headshot BOOLEAN DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS is_vehicle BOOLEAN DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS killer_team VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS victim_team VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS timestamp TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+COMMIT;

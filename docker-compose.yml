@@ -1,0 +1,142 @@
+services:
+  postgres_gamestats:
+    image: bitnamilegacy/postgresql:17.6.0-debian-12-r0
+    container_name: postgres_gamestats
+    environment:
+      POSTGRES_USER: ${POSTGRESQL_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRESQL_PASSWORD}
+      POSTGRES_DB: ${POSTGRESQL_GAMESTATS_DATABASE}
+    ports:
+      - "${POSTGRESQL_PORT}:5432"
+    volumes:
+      - ./.database/gamestats:/bitnami/postgresql/data
+    restart: always
+    networks:
+      - gamestats_network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRESQL_USERNAME} -d $${POSTGRESQL_GAMESTATS_DATABASE}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  gamestats_redis:
+    image: redis:7.2.1-alpine
+    container_name: gamestats_redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - ./.database/cache:/data
+    restart: always
+    networks:
+      - gamestats_network
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  flyway_gamestats:
+    image: flyway/flyway:11.3
+    container_name: flyway_gamestats
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres_gamestats:${POSTGRESQL_PORT}/${POSTGRESQL_GAMESTATS_DATABASE}
+      FLYWAY_USER: ${POSTGRESQL_USERNAME}
+      FLYWAY_PASSWORD: ${POSTGRESQL_PASSWORD}
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+    volumes:
+      - ./migrations:/flyway/sql
+    command: ["migrate"]
+    depends_on:
+      postgres_gamestats:
+        condition: service_healthy
+    networks:
+      - gamestats_network
+
+  gamestats_backend_1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      API_KEY: ${API_KEY}
+      APP_ENV: ${APP_ENV}
+      POSTGRESQL_HOST: ${POSTGRESQL_HOST}
+      POSTGRESQL_PORT: ${POSTGRESQL_PORT}
+      POSTGRESQL_USERNAME: ${POSTGRESQL_USERNAME}
+      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
+      POSTGRESQL_DB: ${POSTGRESQL_GAMESTATS_DATABASE}
+      POSTGRESQL_SSLMODE: ${POSTGRESQL_SSLMODE}
+    depends_on:
+      postgres_gamestats:
+        condition: service_healthy
+      flyway_gamestats:
+        condition: service_completed_successfully
+    networks:
+      - gamestats_network
+
+  gamestats_backend_2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      API_KEY: ${API_KEY}
+      APP_ENV: ${APP_ENV}
+      POSTGRESQL_HOST: ${POSTGRESQL_HOST}
+      POSTGRESQL_PORT: ${POSTGRESQL_PORT}
+      POSTGRESQL_USERNAME: ${POSTGRESQL_USERNAME}
+      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
+      POSTGRESQL_DB: ${POSTGRESQL_GAMESTATS_DATABASE}
+      POSTGRESQL_SSLMODE: ${POSTGRESQL_SSLMODE}
+    depends_on:
+      postgres_gamestats:
+        condition: service_healthy
+      flyway_gamestats:
+        condition: service_completed_successfully
+    networks:
+      - gamestats_network
+
+  gamestats_backend_3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      API_KEY: ${API_KEY}
+      APP_ENV: ${APP_ENV}
+      POSTGRESQL_HOST: ${POSTGRESQL_HOST}
+      POSTGRESQL_PORT: ${POSTGRESQL_PORT}
+      POSTGRESQL_USERNAME: ${POSTGRESQL_USERNAME}
+      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
+      POSTGRESQL_DB: ${POSTGRESQL_GAMESTATS_DATABASE}
+      POSTGRESQL_SSLMODE: ${POSTGRESQL_SSLMODE}
+    depends_on:
+      postgres_gamestats:
+        condition: service_healthy
+      flyway_gamestats:
+        condition: service_completed_successfully
+    networks:
+      - gamestats_network
+
+  gamestats_nginx:
+    image: nginx:latest
+    container_name: gamestats-nginx
+    ports:
+      - "${NGINX_PORT}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - gamestats_backend_1
+      - gamestats_backend_2
+      - gamestats_backend_3
+    networks:
+      - gamestats_network
+      - microservices_network
+
+networks:
+  gamestats_network:
+  microservices_network:
+    external: true

@@ -1,0 +1,2 @@
+ALTER TABLE players_stats
+ADD COLUMN max_kill_distance DOUBLE PRECISION NOT NULL DEFAULT 0;
