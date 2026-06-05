@@ -32,10 +32,10 @@ func NewRoundsRepository(db *gorm.DB) RoundsRepository {
 func (r *roundsRepository) Save(ctx context.Context, round *entities.Rounds) (*entities.Rounds, error) {
 	tx := r.db.WithContext(ctx).Create(round)
 	if tx.Error != nil {
-		log.Printf("[repository:rounds] erro ao criar rodada: %v", tx.Error)
-		return nil, fmt.Errorf("erro ao criar rodada: %w", tx.Error)
+		log.Printf("[repository:rounds] failed to create round: %v", tx.Error)
+		return nil, fmt.Errorf("failed to create round: %w", tx.Error)
 	}
-	log.Printf("[repository:rounds] rodada criada: %v", round.ID)
+	log.Printf("[repository:rounds] round created: %v", round.ID)
 	return round, nil
 }
 
@@ -44,13 +44,13 @@ func (r *roundsRepository) FindByID(ctx context.Context, id uuid.UUID) (*entitie
 	tx := r.db.WithContext(ctx).First(&round, "id = ?", id)
 	if tx.Error != nil {
 		if tx.Error == gorm.ErrRecordNotFound {
-			log.Printf("[repository:rounds] nenhuma rodada encontrada com id: %v", id)
+			log.Printf("[repository:rounds] no round found with id: %v", id)
 			return nil, nil
 		}
-		log.Printf("[repository:rounds] erro ao buscar rodada por id %v: %v", id, tx.Error)
-		return nil, fmt.Errorf("erro ao buscar rodada por id: %w", tx.Error)
+		log.Printf("[repository:rounds] failed to find round by id %v: %v", id, tx.Error)
+		return nil, fmt.Errorf("failed to find round by id: %w", tx.Error)
 	}
-	log.Printf("[repository:rounds] rodada recuperada: %v", round.ID)
+	log.Printf("[repository:rounds] round retrieved: %v", round.ID)
 	return &round, nil
 }
 
@@ -59,8 +59,8 @@ func (r *roundsRepository) FindAll(ctx context.Context, limit, offset int) ([]en
 	var total int64
 
 	if err := r.db.WithContext(ctx).Model(&entities.Rounds{}).Count(&total).Error; err != nil {
-		log.Printf("[repository:rounds] erro ao contar rodadas: %v", err)
-		return nil, 0, fmt.Errorf("erro ao contar rodadas: %w", err)
+		log.Printf("[repository:rounds] failed to count rounds: %v", err)
+		return nil, 0, fmt.Errorf("failed to count rounds: %w", err)
 	}
 
 	tx := r.db.WithContext(ctx).
@@ -70,11 +70,11 @@ func (r *roundsRepository) FindAll(ctx context.Context, limit, offset int) ([]en
 		Find(&rounds)
 
 	if tx.Error != nil {
-		log.Printf("[repository:rounds] erro ao listar rodadas: %v", tx.Error)
-		return nil, 0, fmt.Errorf("erro ao listar rodadas: %w", tx.Error)
+		log.Printf("[repository:rounds] failed to list rounds: %v", tx.Error)
+		return nil, 0, fmt.Errorf("failed to list rounds: %w", tx.Error)
 	}
 
-	log.Printf("[repository:rounds] %d rodadas recuperadas (offset=%d, limit=%d, total=%d)",
+	log.Printf("[repository:rounds] %d rounds retrieved (offset=%d, limit=%d, total=%d)",
 		len(rounds), offset, limit, total)
 
 	return rounds, total, nil
@@ -89,61 +89,49 @@ func (r *roundsRepository) FindLastRoundInProgressByServerID(ctx context.Context
 
 	if tx.Error != nil {
 		if tx.Error == gorm.ErrRecordNotFound {
-			log.Printf("[repository:rounds] nenhum round em progresso encontrado para o servidor: %v", serverID)
+			log.Printf("[repository:rounds] no in-progress round found for server: %v", serverID)
 			return nil, nil
 		}
-		log.Printf("[repository:rounds] erro ao buscar último round em progresso para o servidor %v: %v", serverID, tx.Error)
-		return nil, fmt.Errorf("erro ao buscar último round em progresso: %w", tx.Error)
+		log.Printf("[repository:rounds] failed to find last in-progress round for server %v: %v", serverID, tx.Error)
+		return nil, fmt.Errorf("failed to find last in-progress round: %w", tx.Error)
 	}
 
-	log.Printf("[repository:rounds] round em progresso recuperado: %v", round.ID)
+	log.Printf("[repository:rounds] in-progress round retrieved: %v", round.ID)
 	return &round, nil
 }
 
 func (r *roundsRepository) FindAllRoundsInProgress(ctx context.Context) ([]entities.Rounds, error) {
 	var rounds []entities.Rounds
-	tx := r.db.WithContext(ctx).Where("status = in_progress").Find(&rounds)
+	tx := r.db.WithContext(ctx).Where("status = ?", "in_progress").Find(&rounds)
 	if tx.Error != nil {
-		log.Printf("[repository:rounds] erro ao buscar rounds em progresso: %v", tx.Error)
-		return nil, fmt.Errorf("erro ao buscar rounds em progresso: %w", tx.Error)
+		log.Printf("[repository:rounds] failed to find rounds in progress: %v", tx.Error)
+		return nil, fmt.Errorf("failed to find rounds in progress: %w", tx.Error)
 	}
 
-	log.Printf("[repository:rounds] rounds em progresso recuperados: %d registros", len(rounds))
+	log.Printf("[repository:rounds] rounds in progress retrieved: %d records", len(rounds))
 	return rounds, nil
 }
 
 func (r *roundsRepository) FindAllRoundsByServerIDAndPlayerID(ctx context.Context, serverId, playerId uuid.UUID, limit, offset int) ([]entities.Rounds, int64, error) {
-	var stats []entities.RoundsStats
 	var total int64
-
-	// RESOLVER DAQUI A POUCO
-	if err := r.db.WithContext(ctx).Model(&entities.RoundsStats{}).Where("server_id = ? AND player_id = ?", serverId, playerId).Count(&total).Error; err != nil {
-		log.Printf("[repository:rounds_stats] erro ao contar stats do player: %v", err)
-		return nil, 0, fmt.Errorf("erro ao contar stats: %w", err)
-	}
-
-	if err := r.db.WithContext(ctx).Model(&entities.RoundsStats{}).Where("server_id = ? AND player_id = ?", serverId, playerId).Limit(limit).Offset(offset).Find(&stats).Error; err != nil {
-		log.Printf("[repository:rounds_stats] erro ao buscar stats do player: %v", err)
-		return nil, 0, fmt.Errorf("erro ao buscar stats: %w", err)
-	}
-
-	if len(stats) == 0 {
-		return []entities.Rounds{}, total, nil
-	}
-
-	roundIDs := make([]uuid.UUID, 0, len(stats))
-	for _, s := range stats {
-		roundIDs = append(roundIDs, s.RoundID)
-	}
-
 	var rounds []entities.Rounds
-	if err := r.db.WithContext(ctx).Where("id IN ?", roundIDs).Find(&rounds).Error; err != nil {
-		log.Printf("[repository:rounds] erro ao buscar rounds dos stats: %v", err)
-		return nil, 0, fmt.Errorf("erro ao buscar rounds: %w", err)
+
+	base := r.db.WithContext(ctx).
+		Model(&entities.Rounds{}).
+		Joins("INNER JOIN rounds_stats ON rounds_stats.round_id = rounds.id").
+		Where("rounds_stats.server_id = ? AND rounds_stats.player_id = ?", serverId, playerId)
+
+	if err := base.Count(&total).Error; err != nil {
+		log.Printf("[repository:rounds_stats] failed to count rounds for player: %v", err)
+		return nil, 0, fmt.Errorf("failed to count rounds: %w", err)
 	}
 
-	log.Printf("[repository:rounds] rounds recuperados: %d registros", len(rounds))
+	if err := base.Order("rounds.created_at DESC").Limit(limit).Offset(offset).Find(&rounds).Error; err != nil {
+		log.Printf("[repository:rounds_stats] failed to find rounds for player: %v", err)
+		return nil, 0, fmt.Errorf("failed to fetch rounds: %w", err)
+	}
 
+	log.Printf("[repository:rounds] rounds retrieved: %d records", len(rounds))
 	return rounds, total, nil
 }
 
@@ -157,21 +145,21 @@ func (r *roundsRepository) Update(ctx context.Context, round *entities.Rounds, i
 		})
 
 	if tx.Error != nil {
-		log.Printf("[repository:rounds] erro ao atualizar round %v: %v", id, tx.Error)
-		return nil, fmt.Errorf("erro ao atualizar round: %w", tx.Error)
+		log.Printf("[repository:rounds] failed to update round %v: %v", id, tx.Error)
+		return nil, fmt.Errorf("failed to update round: %w", tx.Error)
 	}
 
 	if tx.RowsAffected == 0 {
-		log.Printf("[repository:rounds] nenhum round encontrado com id: %v", id)
-		return nil, fmt.Errorf("nenhum round encontrado com o id %s", id)
+		log.Printf("[repository:rounds] no round found with id: %v", id)
+		return nil, fmt.Errorf("no round found with id %s", id)
 	}
 
 	updated, err := r.FindByID(ctx, id)
 	if err != nil {
-		log.Printf("[repository:rounds] erro ao buscar round atualizado %v: %v", id, err)
-		return nil, fmt.Errorf("erro ao buscar round atualizado: %w", err)
+		log.Printf("[repository:rounds] failed to find updated round %v: %v", id, err)
+		return nil, fmt.Errorf("failed to find updated round: %w", err)
 	}
 
-	log.Printf("[repository:rounds] round atualizado: %v", updated.ID)
+	log.Printf("[repository:rounds] round updated: %v", updated.ID)
 	return updated, nil
 }
