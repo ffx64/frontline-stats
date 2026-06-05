@@ -30,10 +30,10 @@ func NewRoundsStatsRepository(db *gorm.DB) RoundsStatsRepository {
 func (r *roundsStatsRepository) Save(ctx context.Context, stats *entities.RoundsStats) (*entities.RoundsStats, error) {
 	tx := r.db.WithContext(ctx).Create(stats)
 	if tx.Error != nil {
-		log.Printf("[repository:rounds_stats] erro ao criar estatísticas da rodada: %v", tx.Error)
-		return nil, fmt.Errorf("erro ao criar estatísticas da rodada: %w", tx.Error)
+		log.Printf("[repository:rounds_stats] failed to create round stats: %v", tx.Error)
+		return nil, fmt.Errorf("failed to create round stats: %w", tx.Error)
 	}
-	log.Printf("[repository:rounds_stats] estatísticas da rodada criadas: %v", stats.ID)
+	log.Printf("[repository:rounds_stats] round stats created: %v", stats.ID)
 	return stats, nil
 }
 
@@ -42,30 +42,26 @@ func (r *roundsStatsRepository) FindScoreboardByRoundID(ctx context.Context, rou
 	tx := r.db.WithContext(ctx).Where("round_id = ?", roundId).Find(&stats)
 	if tx.Error != nil {
 		if tx.Error == gorm.ErrRecordNotFound {
-			log.Printf("[repository:rounds_stats] nenhuma estatística da rodada encontrada com round_id: %v", roundId)
+			log.Printf("[repository:rounds_stats] no round stats found for round_id: %v", roundId)
 			return nil, nil
 		}
-		log.Printf("[repository:rounds_stats] erro ao buscar estatísticas da rodada por round_id %v : %v", roundId, tx.Error)
-		return nil, fmt.Errorf("erro ao buscar estatísticas da rodada por round_id: %w", tx.Error)
+		log.Printf("[repository:rounds_stats] failed to find round stats by round_id %v: %v", roundId, tx.Error)
+		return nil, fmt.Errorf("failed to find round stats by round_id: %w", tx.Error)
 	}
-	log.Printf("[repository:rounds_stats] estatísticas da rodada recuperadas: %v", roundId)
+	log.Printf("[repository:rounds_stats] round stats retrieved: %v", roundId)
 	return stats, nil
 }
 
 func (r *roundsStatsRepository) UpdateRoundsStats(ctx context.Context) error {
 	tx, err := helpers.AdvisoryLock(ctx, r.db, "update_rounds_stats_key")
-
 	if err != nil {
-		log.Printf("[repository:rounds_stats] erro ao tentar adquirir lock: %v", err)
+		log.Printf("[repository:rounds_stats] failed to acquire advisory lock: %v", err)
 		return err
 	}
-
 	if tx == nil {
-		log.Printf("[repository:rounds_stats] outra instância já está executando")
-		return err
+		log.Printf("[repository:rounds_stats] another instance is already running, skipping update")
+		return nil
 	}
-
-	defer helpers.AdvisoryUnlock(ctx, tx, "update_rounds_stats_key")
 
 	query := `
 WITH active_rounds AS (
@@ -92,11 +88,11 @@ killer_stats AS (
         killer_id AS player_id,
         ar.round_id AS r_id,
         ar.server_id AS s_id,
-        COUNT(*) FILTER (WHERE NOT is_friendly AND killer_id != victim_id) AS total_kills,  -- Kills do killer (sem friendly fire)
-        COUNT(*) FILTER (WHERE is_headshot = TRUE AND killer_id != victim_id) AS total_headshots,  -- Headshots (não suicídios)
-        COUNT(*) FILTER (WHERE is_vehicle = TRUE AND killer_id != victim_id) AS total_vehicle_kills,  -- Kills com veículos
-        COUNT(*) FILTER (WHERE is_friendly = TRUE AND killer_id != victim_id) AS total_team_kills,  -- Kills de time
-        SUM(distance) FILTER (WHERE NOT is_friendly AND killer_id != victim_id) AS total_kill_distance,  -- Distância média das kills
+        COUNT(*) FILTER (WHERE NOT is_friendly AND killer_id != victim_id) AS total_kills,
+        COUNT(*) FILTER (WHERE is_headshot = TRUE AND killer_id != victim_id) AS total_headshots,
+        COUNT(*) FILTER (WHERE is_vehicle = TRUE AND killer_id != victim_id) AS total_vehicle_kills,
+        COUNT(*) FILTER (WHERE is_friendly = TRUE AND killer_id != victim_id) AS total_team_kills,
+        SUM(distance) FILTER (WHERE NOT is_friendly AND killer_id != victim_id) AS total_kill_distance,
         killer_team AS team
     FROM round_kills k
     INNER JOIN active_rounds ar
@@ -110,9 +106,9 @@ victim_stats AS (
         victim_id AS player_id,
         ar.round_id AS r_id,
         ar.server_id AS s_id,
-        COUNT(*) AS total_deaths,  -- Mortes totais (como vítima)
-        COUNT(*) FILTER (WHERE killer_id = victim_id) AS total_suicides,  -- Suicídios (matar-se)
-        COUNT(*) FILTER (WHERE killer_id = victim_id AND is_vehicle = TRUE) AS total_vehicle_deaths,  -- Mortes por veículo
+        COUNT(*) AS total_deaths,
+        COUNT(*) FILTER (WHERE killer_id = victim_id) AS total_suicides,
+        COUNT(*) FILTER (WHERE killer_id = victim_id AND is_vehicle = TRUE) AS total_vehicle_deaths,
         victim_team AS team
     FROM round_kills k
     INNER JOIN active_rounds ar
@@ -212,21 +208,28 @@ ON CONFLICT (round_id, player_id) DO UPDATE SET
     updated_at          = EXCLUDED.updated_at;
 `
 
-	if err := tx.WithContext(ctx).Exec(query).Error; err != nil {
-		log.Printf("[repository:rounds_stats] erro ao atualizar estatísticas das rodadas em progresso: %v", err)
+	result := tx.WithContext(ctx).Exec(query)
+	if result.Error != nil {
+		tx.Rollback()
+		log.Printf("[repository:rounds_stats] failed to update in-progress round stats: %v", result.Error)
+		return result.Error
+	}
+
+	if err := helpers.AdvisoryUnlock(ctx, tx, "update_rounds_stats_key"); err != nil {
+		log.Printf("[repository:rounds_stats] failed to commit rounds_stats update: %v", err)
 		return err
 	}
 
-	log.Printf("[repository:rounds_stats] estatísticas das rodadas em progresso atualizadas com sucesso, total de %d linhas foram afetadas.", tx.RowsAffected)
+	log.Printf("[repository:rounds_stats] in-progress round stats updated successfully, %d rows affected", result.RowsAffected)
 	return nil
 }
 
 func (r *roundsStatsRepository) Update(ctx context.Context, stats *entities.RoundsStats, roundId uuid.UUID, playerId uuid.UUID) (*entities.RoundsStats, error) {
 	tx := r.db.WithContext(ctx).Model(&entities.RoundsStats{}).Where("round_id = ? AND player_id = ?", roundId, playerId).Updates(stats)
 	if tx.Error != nil {
-		log.Printf("[repository:rounds_stats] erro ao atualizar estatísticas da rodada %v com o player: %v : %v", roundId, playerId, tx.Error)
-		return nil, fmt.Errorf("erro ao atualizar estatísticas da rodada: %w", tx.Error)
+		log.Printf("[repository:rounds_stats] failed to update round stats for round %v player %v: %v", roundId, playerId, tx.Error)
+		return nil, fmt.Errorf("failed to update round stats: %w", tx.Error)
 	}
-	log.Printf("[repository:rounds_stats] estatísticas do player: %v na rodada: %v foram atualizadas", playerId, roundId)
+	log.Printf("[repository:rounds_stats] stats updated for player %v in round %v", playerId, roundId)
 	return stats, nil
 }
