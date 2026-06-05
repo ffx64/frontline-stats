@@ -32,21 +32,21 @@ func NewGinServer(
 	default:
 		gin.SetMode(gin.ReleaseMode)
 	}
-	log.Printf("[gin:server] ambiente configurado: %s", appEnv)
+	log.Printf("[gin:server] environment set: %s", appEnv)
 
 	port := os.Getenv("GIN_PORT")
 	if port == "" {
 		port = "8080"
 	}
-	log.Printf("[gin:server] porta configurada: %s", port)
+	log.Printf("[gin:server] port configured: %s", port)
 
 	router := gin.Default()
 
 	key := os.Getenv("API_KEY")
 	if key != "" {
-		log.Printf("[gin:server] chave key configurada: %s", key)
+		log.Printf("[gin:server] api key configured: %s", key)
 		router.Use(middleware.Auth(key))
-		log.Printf("[gin:server] middleware de autenticação carregado com sucesso")
+		log.Printf("[gin:server] auth middleware loaded")
 	}
 
 	router.Use(cors.New(cors.Config{
@@ -54,14 +54,14 @@ func NewGinServer(
 		AllowMethods:    []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:    []string{"Origin", "Content-Type", "Authorization"},
 	}))
-	log.Println("[gin:server] middleware CORS carregado com sucesso")
+	log.Println("[gin:server] CORS middleware loaded")
 
 	playersController := controllers.NewPlayersControllers(playersService)
 	playersStatsController := controllers.NewPlayersStatsController(playersStatsService)
 	serversController := controllers.NewServersController(serversService)
 	roundsController := controllers.NewRoundsController(roundsService)
 	killsController := controllers.NewKillsController(killsService)
-	log.Println("[gin:server] controllers inicializados")
+	log.Println("[gin:server] controllers initialized")
 
 	v1 := router.Group("/api/v1")
 
@@ -95,14 +95,14 @@ func NewGinServer(
 	rounds.GET("/server/:serverId/player/:playerId", roundsController.GetAllRoundsByServerIDAndPlayerID)
 
 	events.POST("/kill", killsController.SaveKills)
-	log.Println("[gin:server] rotas registradas com sucesso")
+	log.Println("[gin:server] routes registered")
 
 	return &GinInitializer{engine: router, port: port}
 }
 
 func (g *GinInitializer) Start() {
-	log.Printf("[gin:server] servidor iniciado na porta %s", g.port)
+	log.Printf("[gin:server] server started on port %s", g.port)
 	if err := g.engine.Run(":" + g.port); err != nil {
-		log.Fatalf("[gin:server] erro ao iniciar servidor: %v", err)
+		log.Fatalf("[gin:server] failed to start server: %v", err)
 	}
 }

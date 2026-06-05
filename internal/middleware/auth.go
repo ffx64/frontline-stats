@@ -12,14 +12,14 @@ func Auth(key string) gin.HandlerFunc {
 		authHeader := c.GetHeader("Authorization")
 
 		if authHeader == "" {
-			log.Println("[middleware:auth] Authorization header não encontrado")
+			log.Println("[middleware:auth] Authorization header not found")
 			c.JSON(errors.ErrHeaderMissing.Status, errors.ErrHeaderMissing)
 			c.Abort()
 			return
 		}
 
 		if authHeader != key {
-			log.Println("[middleware:auth] Chave de autorização inválida")
+			log.Println("[middleware:auth] invalid authorization key")
 			c.JSON(errors.ErrUnauthorized.Status, errors.ErrUnauthorized)
 			c.Abort()
 			return

@@ -21,7 +21,7 @@ func NewPlayersControllers(service services.PlayersService) *PlayersControllers 
 func (c *PlayersControllers) SavePlayer(ctx *gin.Context) {
 	var dto dtos.PlayerSaveDTO
 	if err := ctx.ShouldBindJSON(&dto); err != nil {
-		log.Printf("[controller:players] formato de JSON inválido: %v", err)
+		log.Printf("[controller:players] invalid JSON format: %v", err)
 		ctx.JSON(errors.ErrJsonInvalidFormat.Status, errors.ErrJsonInvalidFormat)
 		return
 	}
@@ -36,7 +36,7 @@ func (c *PlayersControllers) SavePlayer(ctx *gin.Context) {
 		return
 	}
 
-	log.Printf("[controller:players] jogador criado: %v", player.ID)
+	log.Printf("[controller:players] player created: %v", player.ID)
 	ctx.JSON(http.StatusCreated, player)
 }
 
@@ -53,7 +53,7 @@ func (c *PlayersControllers) GetPlayerByGUID(ctx *gin.Context) {
 		return
 	}
 
-	log.Printf("[controller:players] jogador recuperado: %v", player.ID)
+	log.Printf("[controller:players] player retrieved: %v", player.ID)
 	ctx.JSON(http.StatusOK, player)
 }
 
@@ -72,7 +72,7 @@ func (c *PlayersControllers) IfNotExistsCreatePlayer(ctx *gin.Context) {
 		return
 	}
 
-	log.Printf("[controller:players] jogador recuperado: %v", player.ID)
+	log.Printf("[controller:players] player retrieved: %v", player.ID)
 	ctx.JSON(http.StatusOK, player)
 }
 
@@ -89,7 +89,7 @@ func (c *PlayersControllers) GetPlayerStatsByGUID(ctx *gin.Context) {
 		return
 	}
 
-	log.Printf("[controller:players_stats] estatísticas do jogador recuperadas: %v", stats.GUID)
+	log.Printf("[controller:players_stats] player stats retrieved: %v", stats.GUID)
 	ctx.JSON(http.StatusOK, stats)
 }
 
@@ -98,7 +98,7 @@ func (c *PlayersControllers) UpdatePlayer(ctx *gin.Context) {
 	var dto dtos.PlayerUpdateDTO
 
 	if err := ctx.ShouldBindJSON(&dto); err != nil {
-		log.Printf("[controller:players] formato de JSON inválido para atualização: %v", err)
+		log.Printf("[controller:players] invalid JSON format for update: %v", err)
 		ctx.JSON(errors.ErrJsonInvalidFormat.Status, errors.ErrJsonInvalidFormat)
 		return
 	}
@@ -107,11 +107,12 @@ func (c *PlayersControllers) UpdatePlayer(ctx *gin.Context) {
 	if err != nil {
 		if custom, ok := err.(*errors.AppError); ok {
 			ctx.JSON(custom.Status, custom)
+			return
 		}
 		ctx.JSON(http.StatusInternalServerError, errors.New(err.Error(), http.StatusInternalServerError))
 		return
-
 	}
-	log.Printf("[controller:players] jogador atualizado: %v", updated.ID)
+
+	log.Printf("[controller:players] player updated: %v", updated.ID)
 	ctx.JSON(http.StatusOK, updated)
 }

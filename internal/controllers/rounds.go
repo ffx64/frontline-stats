@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -25,7 +24,7 @@ func NewRoundsController(service services.RoundsService) *RoundsController {
 func (c *RoundsController) SaveRound(ctx *gin.Context) {
 	var dto dtos.RoundsCreateDTO
 	if err := ctx.ShouldBindJSON(&dto); err != nil {
-		log.Printf("[controller:rounds] formato de JSON inválido: %v", err)
+		log.Printf("[controller:rounds] invalid JSON format: %v", err)
 		ctx.JSON(errors.ErrJsonInvalidFormat.Status, errors.ErrJsonInvalidFormat)
 		return
 	}
@@ -33,16 +32,16 @@ func (c *RoundsController) SaveRound(ctx *gin.Context) {
 	saved, err := c.service.SaveRound(ctx, &dto)
 	if err != nil {
 		if custom, ok := err.(*errors.AppError); ok {
-			log.Printf("[controller:rounds] erro ao salvar round: %v", custom)
+			log.Printf("[controller:rounds] failed to save round: %v", custom)
 			ctx.JSON(custom.Status, custom)
 			return
 		}
-		log.Printf("[controller:rounds] erro ao salvar round: %v", err)
+		log.Printf("[controller:rounds] failed to save round: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errors.New(err.Error(), http.StatusInternalServerError))
 		return
 	}
 
-	log.Printf("[controller:rounds] round criado: %v", saved.ID)
+	log.Printf("[controller:rounds] round created: %v", saved.ID)
 	ctx.JSON(http.StatusCreated, saved)
 }
 
@@ -51,7 +50,7 @@ func (c *RoundsController) GetRoundByID(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		log.Printf("[controller:rounds] UUID inválido: %v", err)
+		log.Printf("[controller:rounds] invalid UUID: %v", err)
 		ctx.JSON(errors.ErrUUIDError.Status, errors.ErrUUIDError)
 		return
 	}
@@ -59,16 +58,16 @@ func (c *RoundsController) GetRoundByID(ctx *gin.Context) {
 	round, err := c.service.GetRoundByID(ctx, id)
 	if err != nil {
 		if custom, ok := err.(*errors.AppError); ok {
-			log.Printf("[controller:rounds] erro ao obter round: %v", custom.Message)
+			log.Printf("[controller:rounds] failed to get round: %v", custom.Message)
 			ctx.JSON(custom.Status, custom)
 			return
 		}
-		log.Printf("[controller:rounds] erro ao obter round: %v", err)
+		log.Printf("[controller:rounds] failed to get round: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errors.New(err.Error(), http.StatusInternalServerError))
 		return
 	}
 
-	log.Printf("[controller:rounds] round recuperado: %v", round.ID)
+	log.Printf("[controller:rounds] round retrieved: %v", round.ID)
 	ctx.JSON(http.StatusOK, round)
 }
 
@@ -77,14 +76,14 @@ func (c *RoundsController) GetScoreboardByRoundID(ctx *gin.Context) {
 	roundIdParam := ctx.Param("id")
 	roundId, err := uuid.Parse(roundIdParam)
 	if err != nil {
-		log.Printf("[controllers:rounds_stats] UUID da rodada inválido: %v", roundIdParam)
+		log.Printf("[controllers:rounds_stats] invalid round UUID: %v", roundIdParam)
 		ctx.JSON(http.StatusBadRequest, errors.ErrUUIDError)
 		return
 	}
 
-	scoreboard, err := c.service.GetScoreboardByRoundID(context.Background(), roundId)
+	scoreboard, err := c.service.GetScoreboardByRoundID(ctx, roundId)
 	if err != nil {
-		log.Printf("[controllers:rounds_stats] erro ao obter estatísticas da rodada para round_id %v: %v", roundId, err)
+		log.Printf("[controllers:rounds_stats] failed to get round scoreboard for round_id %v: %v", roundId, err)
 		ctx.JSON(http.StatusNotFound, errors.ErrRoundNotFound)
 		return
 	}
@@ -97,7 +96,7 @@ func (c *RoundsController) GetAllRoundsByServerIDAndPlayerID(ctx *gin.Context) {
 	serverIdParam := ctx.Param("serverId")
 	serverId, err := uuid.Parse(serverIdParam)
 	if err != nil {
-		log.Printf("[controllers:rounds_stats] UUID do servidor inválido: %v", serverIdParam)
+		log.Printf("[controllers:rounds_stats] invalid server UUID: %v", serverIdParam)
 		ctx.JSON(http.StatusBadRequest, errors.ErrUUIDError)
 		return
 	}
@@ -105,28 +104,28 @@ func (c *RoundsController) GetAllRoundsByServerIDAndPlayerID(ctx *gin.Context) {
 	playerIdParam := ctx.Param("playerId")
 	playerId, err := uuid.Parse(playerIdParam)
 	if err != nil {
-		log.Printf("[controllers:rounds_stats] UUID do jogador inválido: %v", playerIdParam)
+		log.Printf("[controllers:rounds_stats] invalid player UUID: %v", playerIdParam)
 		ctx.JSON(http.StatusBadRequest, errors.ErrUUIDError)
 		return
 	}
 
 	limit, err := strconv.Atoi(ctx.DefaultQuery("limit", "10"))
 	if err != nil {
-		log.Printf("[controllers:rounds_stats] erro ao converter parâmetros de paginação: %v", err)
-		ctx.JSON(http.StatusInternalServerError, errors.ErrConvertParam)
+		log.Printf("[controllers:rounds_stats] failed to parse pagination params: %v", err)
+		ctx.JSON(http.StatusBadRequest, errors.ErrConvertParam)
 		return
 	}
 
 	offset, err := strconv.Atoi(ctx.DefaultQuery("offset", "0"))
 	if err != nil {
-		log.Printf("[controllers:rounds_stats] erro ao converter parâmetros de paginação: %v", err)
-		ctx.JSON(http.StatusInternalServerError, errors.ErrConvertParam)
+		log.Printf("[controllers:rounds_stats] failed to parse pagination params: %v", err)
+		ctx.JSON(http.StatusBadRequest, errors.ErrConvertParam)
 		return
 	}
 
-	statsList, err := c.service.GetAllRoundsByServerIDAndPlayerID(context.Background(), serverId, playerId, limit, offset)
+	statsList, err := c.service.GetAllRoundsByServerIDAndPlayerID(ctx, serverId, playerId, limit, offset)
 	if err != nil {
-		log.Printf("[controllers:rounds_stats] erro ao obter estatísticas das rodadas para server_id %v e player_id %v: %v", serverId, playerId, err)
+		log.Printf("[controllers:rounds_stats] failed to get rounds for server_id %v and player_id %v: %v", serverId, playerId, err)
 		ctx.JSON(http.StatusNotFound, errors.ErrRoundsNotFound)
 		return
 	}
@@ -139,14 +138,14 @@ func (c *RoundsController) UpdateRoundEnded(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		log.Printf("[controller:rounds] UUID inválido para atualização: %v", err)
+		log.Printf("[controller:rounds] invalid UUID for update: %v", err)
 		ctx.JSON(errors.ErrUUIDError.Status, errors.ErrUUIDError)
 		return
 	}
 
 	var dto dtos.RoundsUpdatedEndedDTO
 	if err := ctx.ShouldBindJSON(&dto); err != nil {
-		log.Printf("[controller:rounds] formato de JSON inválido para atualização: %v", err)
+		log.Printf("[controller:rounds] invalid JSON format for update: %v", err)
 		ctx.JSON(errors.ErrJsonInvalidFormat.Status, errors.ErrJsonInvalidFormat)
 		return
 	}
@@ -154,15 +153,15 @@ func (c *RoundsController) UpdateRoundEnded(ctx *gin.Context) {
 	updated, err := c.service.UpdateRoundEnded(ctx, id, &dto)
 	if err != nil {
 		if custom, ok := err.(*errors.AppError); ok {
-			log.Printf("[controller:rounds] erro ao atualizar round: %v", custom)
+			log.Printf("[controller:rounds] failed to update round: %v", custom)
 			ctx.JSON(custom.Status, custom)
 			return
 		}
-		log.Printf("[controller:rounds] erro ao atualizar round: %v", err)
+		log.Printf("[controller:rounds] failed to update round: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errors.New(err.Error(), http.StatusInternalServerError))
 		return
 	}
 
-	log.Printf("[controller:rounds] round atualizado: %v", updated.ID)
+	log.Printf("[controller:rounds] round updated: %v", updated.ID)
 	ctx.JSON(http.StatusOK, updated)
 }

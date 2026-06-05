@@ -23,7 +23,7 @@ func NewServersController(service services.ServersService) *ServersController {
 func (c *ServersController) SaveServer(ctx *gin.Context) {
 	var dto dtos.ServersSaveDTO
 	if err := ctx.ShouldBindJSON(&dto); err != nil {
-		log.Printf("[controller:servers] formato de JSON inválido: %v", err)
+		log.Printf("[controller:servers] invalid JSON format: %v", err)
 		ctx.JSON(errors.ErrJsonInvalidFormat.Status, errors.ErrJsonInvalidFormat)
 		return
 	}
@@ -34,12 +34,12 @@ func (c *ServersController) SaveServer(ctx *gin.Context) {
 			ctx.JSON(custom.Status, custom)
 			return
 		}
-		log.Printf("[controller:servers] erro ao salvar server: %v", err)
+		log.Printf("[controller:servers] failed to save server: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errors.New(err.Error(), http.StatusInternalServerError))
 		return
 	}
 
-	log.Printf("[controller:servers] server criado: %v", saved.ID)
+	log.Printf("[controller:servers] server created: %v", saved.ID)
 	ctx.JSON(http.StatusCreated, saved)
 }
 
@@ -48,8 +48,8 @@ func (c *ServersController) GetServerByID(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		log.Printf("[controller:servers] UUID inválido: %v", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		log.Printf("[controller:servers] invalid UUID: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -59,12 +59,12 @@ func (c *ServersController) GetServerByID(ctx *gin.Context) {
 			ctx.JSON(custom.Status, custom)
 			return
 		}
-		log.Printf("[controller:servers] erro ao obter server: %v", err)
+		log.Printf("[controller:servers] failed to get server: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errors.New(err.Error(), http.StatusInternalServerError))
 		return
 	}
 
-	log.Printf("[controller:servers] server recuperado: %v", server.ID)
+	log.Printf("[controller:servers] server retrieved: %v", server.ID)
 	ctx.JSON(http.StatusOK, server)
 }
 
@@ -76,12 +76,12 @@ func (c *ServersController) GetAllServers(ctx *gin.Context) {
 			ctx.JSON(custom.Status, custom)
 			return
 		}
-		log.Printf("[controller:servers] erro ao obter servers: %v", err)
+		log.Printf("[controller:servers] failed to get servers: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errors.New(err.Error(), http.StatusInternalServerError))
 		return
 	}
 
-	log.Printf("[controller:servers] %d servers recuperados", len(servers))
+	log.Printf("[controller:servers] %d servers retrieved", len(servers))
 	ctx.JSON(http.StatusOK, servers)
 }
 
@@ -90,14 +90,14 @@ func (c *ServersController) UpdateServer(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		log.Printf("[controller:servers] UUID inválido para atualização: %v", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		log.Printf("[controller:servers] invalid UUID for update: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
 	var dto dtos.ServersSaveDTO
 	if err := ctx.ShouldBindJSON(&dto); err != nil {
-		log.Printf("[controller:servers] formato de JSON inválido para atualização: %v", err)
+		log.Printf("[controller:servers] invalid JSON format for update: %v", err)
 		ctx.JSON(errors.ErrJsonInvalidFormat.Status, errors.ErrJsonInvalidFormat)
 		return
 	}
@@ -108,12 +108,12 @@ func (c *ServersController) UpdateServer(ctx *gin.Context) {
 			ctx.JSON(custom.Status, custom)
 			return
 		}
-		log.Printf("[controller:servers] erro ao atualizar server: %v", err)
+		log.Printf("[controller:servers] failed to update server: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errors.New(err.Error(), http.StatusInternalServerError))
 		return
 	}
 
-	log.Printf("[controller:servers] server atualizado: %v", updated.ID)
+	log.Printf("[controller:servers] server updated: %v", updated.ID)
 	ctx.JSON(http.StatusOK, updated)
 }
 
@@ -122,8 +122,8 @@ func (c *ServersController) DeleteServer(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		log.Printf("[controller:servers] UUID inválido para delete: %v", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		log.Printf("[controller:servers] invalid UUID for delete: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -133,11 +133,11 @@ func (c *ServersController) DeleteServer(ctx *gin.Context) {
 			ctx.JSON(custom.Status, custom)
 			return
 		}
-		log.Printf("[controller:servers] erro ao deletar server: %v", err)
+		log.Printf("[controller:servers] failed to delete server: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errors.New(err.Error(), http.StatusInternalServerError))
 		return
 	}
 
-	log.Printf("[controller:servers] server deletado: %v", id)
+	log.Printf("[controller:servers] server deleted: %v", id)
 	ctx.JSON(http.StatusOK, deleted)
 }
