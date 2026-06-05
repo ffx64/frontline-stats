@@ -19,7 +19,7 @@ var DB *gorm.DB
 
 func Connect() *gorm.DB {
 	if DB != nil {
-		log.Println("[postgres] usando conexão existente")
+		log.Println("[postgres] using existing connection")
 		return DB
 	}
 
@@ -27,23 +27,21 @@ func Connect() *gorm.DB {
 
 	if appEnv == "" {
 		appEnv = "test"
-		log.Println("[postgres] APP_ENV não definido, usando 'test'")
+		log.Println("[postgres] APP_ENV not set, defaulting to 'test'")
 	}
 
 	switch appEnv {
 	case "test":
-		// SQLite in-memory para testes
 		var err error
 		DB, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
 			Logger: logger.Default.LogMode(logger.Silent),
 		})
 		if err != nil {
-			log.Fatalf("[postgres] falha ao conectar SQLite para testes: %v", err)
+			log.Fatalf("[postgres] failed to connect SQLite for tests: %v", err)
 		}
-		log.Println("[postgres] banco de dados de teste (SQLite) conectado")
+		log.Println("[postgres] test database (SQLite) connected")
 		return DB
 	case "dev", "prod":
-		// Postgres
 		host := os.Getenv("POSTGRESQL_HOST")
 		port := os.Getenv("POSTGRESQL_PORT")
 		user := os.Getenv("POSTGRESQL_USERNAME")
@@ -53,12 +51,12 @@ func Connect() *gorm.DB {
 
 		if dbname == "" {
 			dbname = "gamestats"
-			log.Printf("[postgres] POSTGRESQL_DB não definido, usando 'gamestats'")
+			log.Printf("[postgres] POSTGRESQL_DB not set, defaulting to 'gamestats'")
 		}
 
 		if sslmode == "" {
 			sslmode = "disable"
-			log.Printf("[postgres] POSTGRESQL_SSLMODE não definido, usando 'disable'")
+			log.Printf("[postgres] POSTGRESQL_SSLMODE not set, defaulting to 'disable'")
 		}
 
 		dsn := fmt.Sprintf(
@@ -66,7 +64,7 @@ func Connect() *gorm.DB {
 			host, port, user, password, dbname, sslmode,
 		)
 
-		log.Printf("[postgres] tentando conectar ao Postgres em %s:%s/%s (%s:%s)", host, port, dbname, user, password)
+		log.Printf("[postgres] connecting to Postgres at %s:%s/%s", host, port, dbname)
 
 		var sqlDB *sql.DB
 		var err error
@@ -74,21 +72,21 @@ func Connect() *gorm.DB {
 		for i := 1; i <= 10; i++ {
 			sqlDB, err = sql.Open("postgres", dsn)
 			if err != nil {
-				log.Printf("[postgres] tentativa %d: falha ao abrir banco de dados: %v", i, err)
+				log.Printf("[postgres] attempt %d: failed to open database: %v", i, err)
 				time.Sleep(3 * time.Second)
 				continue
 			}
 			if err = sqlDB.Ping(); err != nil {
-				log.Printf("[postgres] tentativa %d: banco ainda não respondeu: %v", i, err)
+				log.Printf("[postgres] attempt %d: database not responding: %v", i, err)
 				time.Sleep(3 * time.Second)
 				continue
 			}
-			log.Printf("[postgres] conexão bem-sucedida na tentativa %d", i)
+			log.Printf("[postgres] connection successful on attempt %d", i)
 			break
 		}
 
 		if err != nil {
-			log.Fatalf("[postgres] não consegui conectar ao banco depois de várias tentativas: %v", err)
+			log.Fatalf("[postgres] failed to connect to database after multiple attempts: %v", err)
 		}
 
 		DB, err = gorm.Open(postgres.New(postgres.Config{
@@ -97,17 +95,17 @@ func Connect() *gorm.DB {
 			Logger: logger.Default.LogMode(logger.Info),
 		})
 		if err != nil {
-			log.Fatalf("[postgres] falha ao criar GORM DB: %v", err)
+			log.Fatalf("[postgres] failed to create GORM DB: %v", err)
 		}
 
 		sqlDB.SetMaxIdleConns(10)
 		sqlDB.SetMaxOpenConns(100)
 		sqlDB.SetConnMaxLifetime(time.Hour)
 
-		log.Printf("[postgres] banco de dados '%s' conectado com GORM", appEnv)
+		log.Printf("[postgres] database '%s' connected with GORM", appEnv)
 		return DB
 	default:
-		log.Fatalf("[postgres] APP_ENV inválido: %s", appEnv)
+		log.Fatalf("[postgres] invalid APP_ENV: %s", appEnv)
 	}
 
 	return nil
