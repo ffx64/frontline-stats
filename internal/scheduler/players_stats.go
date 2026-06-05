@@ -4,16 +4,24 @@ import (
 	"context"
 	"log"
 	"time"
+
+	"github.com/ffx64/gamestats-backend/internal/cache"
 )
 
 func (s *Scheduler) updatePlayerStats() {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	log.Println("[scheduler:stats] atualizando estatísticas dos jogadores...")
+	log.Println("[scheduler:stats] updating player stats...")
 	if err := s.playersStatsRepo.UpdatePlayerStats(ctx); err != nil {
-		log.Printf("[scheduler:stats] erro ao atualizar stats: %v", err)
+		log.Printf("[scheduler:stats] failed to update player stats: %v", err)
 		return
 	}
-	log.Println("[scheduler:stats] estatísticas atualizadas com sucesso")
+
+	cache.Delete(ctx, s.rdb,
+		cache.KeyLeaderboardKills,
+		cache.KeyLeaderboardHeadshots,
+		cache.KeyLeaderboardVehicles,
+	)
+	log.Println("[scheduler:stats] player stats updated successfully")
 }
