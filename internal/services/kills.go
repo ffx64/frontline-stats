@@ -45,9 +45,13 @@ func NewKillsService(
 func (s *killsService) SaveKills(ctx context.Context, killsDTO []dtos.KillsSaveDTO) error {
 	count := len(killsDTO)
 	if count == 0 {
-		log.Println("[services:kills] aviso: nenhuma kill recebida para salvar")
+		log.Println("[services:kills] no kills received to save")
 		return errors.ErrNoKillsReceived
 	}
+
+	serverCache := make(map[uuid.UUID]*entities.Servers)
+	roundCache := make(map[uuid.UUID]*entities.Rounds)
+	playerCache := make(map[string]*entities.Players)
 
 	kills := make([]*entities.Kills, 0, count)
 	now := time.Now()
@@ -55,64 +59,76 @@ func (s *killsService) SaveKills(ctx context.Context, killsDTO []dtos.KillsSaveD
 	for _, dto := range killsDTO {
 		serverId, err := uuid.Parse(dto.ServerID)
 		if err != nil {
-			log.Printf("[services:kills] erro ao parsear ServerID %s: %v", dto.ServerID, err)
+			log.Printf("[services:kills] failed to parse ServerID %s: %v", dto.ServerID, err)
 			return errors.ErrInvalidServerID
 		}
 
 		roundId, err := uuid.Parse(dto.RoundID)
 		if err != nil {
-			log.Printf("[services:kills] erro ao parsear RoundID %s: %v", dto.RoundID, err)
+			log.Printf("[services:kills] failed to parse RoundID %s: %v", dto.RoundID, err)
 			return errors.ErrInvalidRoundID
 		}
 
 		if _, err := uuid.Parse(dto.KillerID); err != nil {
-			log.Printf("[services:kills] erro ao parsear KillerID %s: %v", dto.KillerID, err)
+			log.Printf("[services:kills] failed to parse KillerID %s: %v", dto.KillerID, err)
 			return errors.ErrInvalidKillerID
 		}
 
 		if _, err := uuid.Parse(dto.VictimID); err != nil {
-			log.Printf("[services:kills] erro ao parsear VictimID %s: %v", dto.VictimID, err)
+			log.Printf("[services:kills] failed to parse VictimID %s: %v", dto.VictimID, err)
 			return errors.ErrInvalidVictimID
 		}
 
-		server, err := s.serverRepo.FindByID(ctx, serverId)
-		if err != nil {
-			log.Printf("[services:kills] erro ao buscar servidor no DB: %v", err)
-			return errors.ErrServerNotFoundDB
-		}
-		if server == nil {
-			log.Printf("[services:kills] servidor não encontrado: %s", serverId)
-			return errors.ErrServerNotFound
-		}
-
-		round, err := s.roundRepo.FindByID(ctx, roundId)
-		if err != nil {
-			log.Printf("[services:kills] erro ao buscar rodada no DB: %v", err)
-			return errors.ErrRoundNotFoundDB
-		}
-		if round == nil {
-			log.Printf("[services:kills] rodada não encontrada: %s", roundId)
-			return errors.ErrRoundNotFound
+		if _, ok := serverCache[serverId]; !ok {
+			server, err := s.serverRepo.FindByID(ctx, serverId)
+			if err != nil {
+				log.Printf("[services:kills] failed to find server in DB: %v", err)
+				return errors.ErrServerNotFoundDB
+			}
+			if server == nil {
+				log.Printf("[services:kills] server not found: %s", serverId)
+				return errors.ErrServerNotFound
+			}
+			serverCache[serverId] = server
 		}
 
-		killer, err := s.playerRepo.FindByGUID(ctx, dto.KillerID)
-		if err != nil {
-			log.Printf("[services:kills] falha ao buscar killer no DB: %v", err)
-			return errors.ErrPlayerLookupFail
-		}
-		if killer == nil {
-			log.Printf("[services:kills] killer não encontrado: %s", dto.KillerID)
-			return errors.ErrPlayerNotFound
+		if _, ok := roundCache[roundId]; !ok {
+			round, err := s.roundRepo.FindByID(ctx, roundId)
+			if err != nil {
+				log.Printf("[services:kills] failed to find round in DB: %v", err)
+				return errors.ErrRoundNotFoundDB
+			}
+			if round == nil {
+				log.Printf("[services:kills] round not found: %s", roundId)
+				return errors.ErrRoundNotFound
+			}
+			roundCache[roundId] = round
 		}
 
-		victim, err := s.playerRepo.FindByGUID(ctx, dto.VictimID)
-		if err != nil {
-			log.Printf("[services:kills] falha ao buscar vítima no DB: %v", err)
-			return errors.ErrPlayerLookupFail
+		if _, ok := playerCache[dto.KillerID]; !ok {
+			killer, err := s.playerRepo.FindByGUID(ctx, dto.KillerID)
+			if err != nil {
+				log.Printf("[services:kills] failed to find killer in DB: %v", err)
+				return errors.ErrPlayerLookupFail
+			}
+			if killer == nil {
+				log.Printf("[services:kills] killer not found: %s", dto.KillerID)
+				return errors.ErrPlayerNotFound
+			}
+			playerCache[dto.KillerID] = killer
 		}
-		if victim == nil {
-			log.Printf("[services:kills] vítima não encontrada: %s", dto.VictimID)
-			return errors.ErrPlayerNotFound
+
+		if _, ok := playerCache[dto.VictimID]; !ok {
+			victim, err := s.playerRepo.FindByGUID(ctx, dto.VictimID)
+			if err != nil {
+				log.Printf("[services:kills] failed to find victim in DB: %v", err)
+				return errors.ErrPlayerLookupFail
+			}
+			if victim == nil {
+				log.Printf("[services:kills] victim not found: %s", dto.VictimID)
+				return errors.ErrPlayerNotFound
+			}
+			playerCache[dto.VictimID] = victim
 		}
 
 		if dto.Timestamp == nil {
@@ -123,8 +139,8 @@ func (s *killsService) SaveKills(ctx context.Context, killsDTO []dtos.KillsSaveD
 			ID:               uuid.New(),
 			ServerID:         serverId,
 			RoundID:          roundId,
-			KillerID:         killer.ID,
-			VictimID:         victim.ID,
+			KillerID:         playerCache[dto.KillerID].ID,
+			VictimID:         playerCache[dto.VictimID].ID,
 			VictimWeaponName: dto.VictimWeaponName,
 			VictimWeaponType: dto.VictimWeaponType,
 			KillerWeaponName: dto.KillerWeaponName,
@@ -142,18 +158,13 @@ func (s *killsService) SaveKills(ctx context.Context, killsDTO []dtos.KillsSaveD
 		kills = append(kills, kill)
 	}
 
-	if len(kills) == 0 {
-		log.Println("[services:kills] aviso: todas as kills descartadas por erros de validação")
-		return errors.ErrNoKillsReceived
-	}
-
 	size := min(100, len(kills))
 
 	if err := s.repo.SaveBatch(ctx, kills, size); err != nil {
-		log.Printf("[services:kills] erro ao salvar batch de %d kills: %v", count, err)
+		log.Printf("[services:kills] failed to save batch of %d kills: %v", count, err)
 		return errors.ErrBatchSaveFailed
 	}
 
-	log.Printf("[services:kills] sucesso: %d kills salvas em batch de %d", count, size)
+	log.Printf("[services:kills] %d kills saved in batch of %d", count, size)
 	return nil
 }
