@@ -30,36 +30,34 @@ func NewPlayersStatsRepository(db *gorm.DB) PlayersStatsRepository {
 func (r *playersStatsRepository) FindByPlayerID(ctx context.Context, playerID string) (*entities.PlayersStats, error) {
 	var stats entities.PlayersStats
 	if err := r.db.WithContext(ctx).Where("player_id = ?", playerID).First(&stats).Error; err != nil {
-		log.Printf("[repository:stats] erro ao buscar estatísticas do jogador %s: %v", playerID, err)
-		return nil, fmt.Errorf("erro ao buscar estatísticas do jogador: %w", err)
+		log.Printf("[repository:stats] failed to find player stats %s: %v", playerID, err)
+		return nil, fmt.Errorf("failed to find player stats: %w", err)
 	}
-	log.Printf("[repository:stats] estatísticas recuperadas para jogador: %s", playerID)
+	log.Printf("[repository:stats] player stats retrieved: %s", playerID)
 	return &stats, nil
 }
 
 func (r *playersStatsRepository) Save(ctx context.Context, stats *entities.PlayersStats) error {
 	if err := r.db.WithContext(ctx).Create(stats).Error; err != nil {
-		log.Printf("[repository:stats] erro ao criar estatística do jogador: %v", err)
-		return fmt.Errorf("erro ao criar estátistica do jogador: %w", err)
+		log.Printf("[repository:stats] failed to create player stats: %v", err)
+		return fmt.Errorf("failed to create player stats: %w", err)
 	}
-	log.Printf("[repository:stats] estatística criada para jogador: %v", stats.PlayerID)
+	log.Printf("[repository:stats] player stats created: %v", stats.PlayerID)
 	return nil
 }
 
 func (r *playersStatsRepository) UpdatePlayerStats(ctx context.Context) error {
 	tx, err := helpers.AdvisoryLock(ctx, r.db, "update_player_stats_key")
-
 	if err != nil {
-		log.Printf("[repository:stats] erro ao tentar adquirir lock: %v", err)
+		log.Printf("[repository:stats] failed to acquire advisory lock: %v", err)
 		return err
 	}
-
 	if tx == nil {
-		log.Printf("[repository:stats] outra instância já está executando")
-		return err
+		log.Printf("[repository:stats] another instance is already running, skipping update")
+		return nil
 	}
 
-	defer helpers.AdvisoryUnlock(ctx, tx, "update_player_stats_key")
+	rollback := func() { tx.Rollback() }
 
 	query := `
 WITH killer_stats AS (
@@ -110,12 +108,13 @@ FULL OUTER JOIN victim_stats vs ON ks.player_id = vs.player_id
 WHERE ps.player_id = COALESCE(ks.player_id, vs.player_id);
 `
 
-	if err := r.db.WithContext(ctx).Exec(query).Error; err != nil {
-		log.Printf("[repository:stats] erro ao atualizar estatísticas principais: %v", err)
+	if err := tx.WithContext(ctx).Exec(query).Error; err != nil {
+		rollback()
+		log.Printf("[repository:stats] failed to update player stats: %v", err)
 		return err
 	}
 
-	query = `
+	ratioQuery := `
 UPDATE players_stats
 SET
   ratio_kdr = CASE WHEN deaths > 0 THEN kills::decimal / deaths ELSE kills END,
@@ -124,9 +123,9 @@ SET
   ratio_vehicle = CASE WHEN vehicle_deaths > 0 THEN vehicle_kills::decimal / vehicle_deaths ELSE 0 END
 WHERE TRUE;
 `
-	// Calcula os ratios separadamente
-	if err := r.db.WithContext(ctx).Exec(query).Error; err != nil {
-		log.Printf("[repository:stats] erro ao atualizar ratios: %v", err)
+	if err := tx.WithContext(ctx).Exec(ratioQuery).Error; err != nil {
+		rollback()
+		log.Printf("[repository:stats] failed to update ratios: %v", err)
 		return err
 	}
 
@@ -190,13 +189,19 @@ WHERE TRUE;
 	}
 
 	for _, q := range queries {
-		if err := r.db.WithContext(ctx).Exec(q).Error; err != nil {
-			log.Printf("[repository:stats] erro ao atualizar mosts: %v", err)
+		if err := tx.WithContext(ctx).Exec(q).Error; err != nil {
+			rollback()
+			log.Printf("[repository:stats] failed to update most-used fields: %v", err)
 			return err
 		}
 	}
 
-	log.Println("[repository:stats] estatísticas dos jogadores atualizadas com sucesso")
+	if err := helpers.AdvisoryUnlock(ctx, tx, "update_player_stats_key"); err != nil {
+		log.Printf("[repository:stats] failed to commit stats update: %v", err)
+		return err
+	}
+
+	log.Println("[repository:stats] player stats updated successfully")
 	return nil
 }
 
@@ -204,7 +209,7 @@ func (r *playersStatsRepository) GetLeaderboard(ctx context.Context) ([]*entitie
 	var stats []*entities.PlayersStats
 
 	if err := r.db.WithContext(ctx).Table("players_stats").Order("(kills - vehicle_kills) DESC").Limit(20).Find(&stats).Error; err != nil {
-		log.Printf("[repository:stats] erro ao obter leaderboard: %v", err)
+		log.Printf("[repository:stats] failed to get leaderboard: %v", err)
 		return nil, err
 	}
 
@@ -215,7 +220,7 @@ func (r *playersStatsRepository) GetLeaderboardHeadshots(ctx context.Context) ([
 	var stats []*entities.PlayersStats
 
 	if err := r.db.WithContext(ctx).Table("players_stats").Order("headshots_made DESC").Limit(20).Find(&stats).Error; err != nil {
-		log.Printf("[repository:stats] erro ao obter leaderboard de headshots: %v", err)
+		log.Printf("[repository:stats] failed to get headshots leaderboard: %v", err)
 		return nil, err
 	}
 
@@ -226,7 +231,7 @@ func (r *playersStatsRepository) GetLeaderboardVehicle(ctx context.Context) ([]*
 	var stats []*entities.PlayersStats
 
 	if err := r.db.WithContext(ctx).Table("players_stats").Order("vehicle_kills DESC").Limit(20).Find(&stats).Error; err != nil {
-		log.Printf("[repository:stats] erro ao obter leaderboard de veículos destruídos: %v", err)
+		log.Printf("[repository:stats] failed to get vehicles leaderboard: %v", err)
 		return nil, err
 	}
 
