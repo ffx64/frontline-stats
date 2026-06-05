@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ffx64/gamestats-backend/internal/database"
-	"github.com/ffx64/gamestats-backend/internal/entities"
-	"github.com/ffx64/gamestats-backend/internal/repositories"
+	"github.com/ffx64/frontline-stats/internal/database"
+	"github.com/ffx64/frontline-stats/internal/entities"
+	"github.com/ffx64/frontline-stats/internal/repositories"
 	"github.com/google/uuid"
 )
 

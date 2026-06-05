@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"github.com/ffx64/gamestats-backend/internal/services"
+	"github.com/ffx64/frontline-stats/internal/services"
 	"github.com/gin-gonic/gin"
 )
 

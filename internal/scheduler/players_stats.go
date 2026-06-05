@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/ffx64/gamestats-backend/internal/cache"
+	"github.com/ffx64/frontline-stats/internal/cache"
 )
 
 func (s *Scheduler) updatePlayerStats() {

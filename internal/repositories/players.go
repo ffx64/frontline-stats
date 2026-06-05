@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ffx64/gamestats-backend/internal/entities"
+	"github.com/ffx64/frontline-stats/internal/entities"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )

@@ -3,8 +3,8 @@ package services
 import (
 	"context"
 
-	"github.com/ffx64/gamestats-backend/internal/dtos"
-	"github.com/ffx64/gamestats-backend/internal/repositories"
+	"github.com/ffx64/frontline-stats/internal/dtos"
+	"github.com/ffx64/frontline-stats/internal/repositories"
 	"github.com/google/uuid"
 )
 

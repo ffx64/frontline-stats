@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ffx64/gamestats-backend/internal/dtos"
-	"github.com/ffx64/gamestats-backend/internal/errors"
-	"github.com/ffx64/gamestats-backend/internal/services"
+	"github.com/ffx64/frontline-stats/internal/dtos"
+	"github.com/ffx64/frontline-stats/internal/errors"
+	"github.com/ffx64/frontline-stats/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )

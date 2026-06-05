@@ -1,4 +1,4 @@
-module github.com/ffx64/gamestats-backend
+module github.com/ffx64/frontline-stats
 
 go 1.24.6
 

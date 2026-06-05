@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ffx64/gamestats-backend/internal/dtos"
+	"github.com/ffx64/frontline-stats/internal/dtos"
 )
 
 func TestServersDTO_JSONSerialization(t *testing.T) {

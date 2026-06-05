@@ -1,8 +1,8 @@
 package helpers
 
 import (
-	"github.com/ffx64/gamestats-backend/internal/dtos"
-	"github.com/ffx64/gamestats-backend/internal/entities"
+	"github.com/ffx64/frontline-stats/internal/dtos"
+	"github.com/ffx64/frontline-stats/internal/entities"
 )
 
 func ToPlayerDTO(player *entities.Players) *dtos.PlayerDTO {

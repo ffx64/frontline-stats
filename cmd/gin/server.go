@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/ffx64/gamestats-backend/internal/controllers"
-	"github.com/ffx64/gamestats-backend/internal/middleware"
-	"github.com/ffx64/gamestats-backend/internal/services"
+	"github.com/ffx64/frontline-stats/internal/controllers"
+	"github.com/ffx64/frontline-stats/internal/middleware"
+	"github.com/ffx64/frontline-stats/internal/services"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )

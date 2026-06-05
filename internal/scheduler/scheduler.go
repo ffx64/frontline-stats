@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/ffx64/gamestats-backend/internal/repositories"
+	"github.com/ffx64/frontline-stats/internal/repositories"
 	"github.com/redis/go-redis/v9"
 	"github.com/robfig/cron/v3"
 )

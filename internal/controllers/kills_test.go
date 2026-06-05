@@ -10,9 +10,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ffx64/gamestats-backend/internal/controllers"
-	"github.com/ffx64/gamestats-backend/internal/dtos"
-	appErrors "github.com/ffx64/gamestats-backend/internal/errors"
+	"github.com/ffx64/frontline-stats/internal/controllers"
+	"github.com/ffx64/frontline-stats/internal/dtos"
+	appErrors "github.com/ffx64/frontline-stats/internal/errors"
 	"github.com/gin-gonic/gin"
 )
 

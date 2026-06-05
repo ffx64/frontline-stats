@@ -10,7 +10,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/ffx64/gamestats-backend/internal/entities"
+	"github.com/ffx64/frontline-stats/internal/entities"
 )
 
 // newTestDB creates an in-memory SQLite database for testing.

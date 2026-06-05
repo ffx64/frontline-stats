@@ -8,10 +8,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/ffx64/gamestats-backend/internal/dtos"
-	"github.com/ffx64/gamestats-backend/internal/entities"
-	"github.com/ffx64/gamestats-backend/internal/errors"
-	"github.com/ffx64/gamestats-backend/internal/repositories"
+	"github.com/ffx64/frontline-stats/internal/dtos"
+	"github.com/ffx64/frontline-stats/internal/entities"
+	"github.com/ffx64/frontline-stats/internal/errors"
+	"github.com/ffx64/frontline-stats/internal/repositories"
 )
 
 type KillsService interface {

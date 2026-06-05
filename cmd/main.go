@@ -4,11 +4,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/ffx64/gamestats-backend/cmd/gin"
-	"github.com/ffx64/gamestats-backend/internal/database"
-	"github.com/ffx64/gamestats-backend/internal/repositories"
-	"github.com/ffx64/gamestats-backend/internal/scheduler"
-	"github.com/ffx64/gamestats-backend/internal/services"
+	"github.com/ffx64/frontline-stats/cmd/gin"
+	"github.com/ffx64/frontline-stats/internal/database"
+	"github.com/ffx64/frontline-stats/internal/repositories"
+	"github.com/ffx64/frontline-stats/internal/scheduler"
+	"github.com/ffx64/frontline-stats/internal/services"
 	"github.com/joho/godotenv"
 )
 

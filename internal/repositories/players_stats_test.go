@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/ffx64/gamestats-backend/internal/entities"
-	"github.com/ffx64/gamestats-backend/internal/repositories"
+	"github.com/ffx64/frontline-stats/internal/entities"
+	"github.com/ffx64/frontline-stats/internal/repositories"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

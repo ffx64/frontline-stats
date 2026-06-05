@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ffx64/gamestats-backend/internal/cache"
-	"github.com/ffx64/gamestats-backend/internal/dtos"
-	"github.com/ffx64/gamestats-backend/internal/entities"
-	"github.com/ffx64/gamestats-backend/internal/errors"
-	"github.com/ffx64/gamestats-backend/internal/helpers"
-	"github.com/ffx64/gamestats-backend/internal/repositories"
+	"github.com/ffx64/frontline-stats/internal/cache"
+	"github.com/ffx64/frontline-stats/internal/dtos"
+	"github.com/ffx64/frontline-stats/internal/entities"
+	"github.com/ffx64/frontline-stats/internal/errors"
+	"github.com/ffx64/frontline-stats/internal/helpers"
+	"github.com/ffx64/frontline-stats/internal/repositories"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
