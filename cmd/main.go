@@ -14,20 +14,20 @@ import (
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		log.Println("[main] .env não encontrado, usando variáveis padrão")
+		log.Println("[main] .env not found, using default environment variables")
 	}
 
 	loc, err := time.LoadLocation("America/Sao_Paulo")
 	if err != nil {
-		log.Fatalf("[main] erro ao definir timezone: %v", err)
+		log.Fatalf("[main] failed to set timezone: %v", err)
 	}
 	time.Local = loc
 
 	db := database.Connect()
-	log.Println("[main] conexão com o banco de dados estabelecida")
+	log.Println("[main] database connection established")
 
 	rdb := database.NewRedisClient()
-	log.Println("[main] conexão com o Redis estabelecida")
+	log.Println("[main] redis connection established")
 
 	playersRepo := repositories.NewPlayersRepository(db)
 	playersStatsRepo := repositories.NewPlayersStatsRepository(db)
@@ -35,19 +35,19 @@ func main() {
 	roundsRepo := repositories.NewRoundsRepository(db)
 	roundsStatsRepo := repositories.NewRoundsStatsRepository(db)
 	killsRepo := repositories.NewKillsRepository(db)
-	log.Println("[main] repositórios inicializados")
+	log.Println("[main] repositories initialized")
 
-	playersService := services.NewPlayersService(playersRepo, playersStatsRepo)
-	playersStatsService := services.NewPlayersStatsService(playersStatsRepo)
-	serversService := services.NewServersService(serversRepo)
-	roundsService := services.NewRoundsService(roundsRepo, roundsStatsRepo)
+	playersService := services.NewPlayersService(playersRepo, playersStatsRepo, rdb)
+	playersStatsService := services.NewPlayersStatsService(playersStatsRepo, rdb)
+	serversService := services.NewServersService(serversRepo, rdb)
+	roundsService := services.NewRoundsService(roundsRepo, roundsStatsRepo, rdb)
 	killsService := services.NewKillsService(killsRepo, roundsRepo, serversRepo, playersRepo, rdb)
-	log.Println("[main] serviços inicializados")
+	log.Println("[main] services initialized")
 
-	s := scheduler.NewScheduler(playersStatsRepo, roundsStatsRepo)
+	s := scheduler.NewScheduler(playersStatsRepo, roundsStatsRepo, rdb)
 	s.Start()
 	defer s.Stop()
-	log.Println("[main] scheduler iniciado")
+	log.Println("[main] scheduler started")
 
 	gin.NewGinServer(playersService, serversService, roundsService, killsService, playersStatsService).Start()
 }
