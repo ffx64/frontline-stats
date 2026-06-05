@@ -1,14 +1,14 @@
 # frontline-stats
 
-Backend de estatísticas para servidores Arma Reforger. Recebe eventos do jogo via mod (kills, rounds, jogadores), agrega métricas e expõe uma API REST para dashboards, bots e integrações.
+Stats backend for Arma Reforger servers. Receives game events from a mod (kills, rounds, players), aggregates metrics, and exposes a REST API for dashboards, bots, and integrations.
 
-> Continuação do [frontline-api](https://github.com/ffx64/frontline-api).
+> Sequel to [frontline-api](https://github.com/ffx64/frontline-api). | [Leia em Português](./README.pt-br.md)
 
 ---
 
-## Como funciona
+## How it works
 
-Um mod em Enforce Script rodando no servidor de jogo envia eventos em tempo real para a API. O backend indexa tudo no PostgreSQL, mantém um cache no Redis e atualiza as estatísticas agregadas periodicamente via jobs cron.
+A mod written in Enforce Script running on the game server sends events to the API in real time. The backend indexes everything in PostgreSQL, keeps a Redis cache, and updates aggregated stats periodically via cron jobs.
 
 ```mermaid
 flowchart TD
@@ -16,13 +16,13 @@ flowchart TD
         Mod["Mod (Enforce Script)\nHTTP Requests"]
     end
 
-    subgraph Consumers ["Consumidores"]
+    subgraph Consumers ["Consumers"]
         Dashboard["Dashboard"]
-        Bot["Bot / Integração"]
+        Bot["Bot / Integration"]
     end
 
     subgraph API ["API Layer"]
-        Auth["Middleware Auth\n(Authorization header)"]
+        Auth["Auth Middleware\n(Authorization header)"]
         Router["Gin Router\n/api/v1"]
     end
 
@@ -51,14 +51,14 @@ flowchart TD
         RSR["RoundsStatsRepo"]
     end
 
-    subgraph Storage ["Armazenamento"]
+    subgraph Storage ["Storage"]
         PG[("PostgreSQL")]
         RDB[("Redis Cache")]
     end
 
     subgraph Scheduler ["Scheduler (cron)"]
-        J1["updatePlayerStats\na cada 15 min"]
-        J2["updateRoundStats\na cada 5 min"]
+        J1["updatePlayerStats\nevery 15 min"]
+        J2["updateRoundStats\nevery 5 min"]
     end
 
     Mod -->|"player join/leave\nround start/end\nkill events (batch)"| Auth
@@ -87,10 +87,10 @@ flowchart TD
 
     PR & RR & SR & KR & PSR & RSR --> PG
 
-    J1 -->|recalcula stats| PSR
-    J1 -->|invalida leaderboard| RDB
-    J2 -->|recalcula scoreboard| RSR
-    J2 -->|invalida scoreboard| RDB
+    J1 -->|updates stats| PSR
+    J1 -->|invalidates leaderboard| RDB
+    J2 -->|updates scoreboard| RSR
+    J2 -->|invalidates scoreboard| RDB
 ```
 
 ---
@@ -101,20 +101,20 @@ Go 1.24 · Gin · GORM v2 · PostgreSQL · Redis · robfig/cron v3
 
 ---
 
-## Rodar localmente
+## Running locally
 
-**Pré-requisitos:** Go 1.24+, PostgreSQL, Redis.
+**Requirements:** Go 1.24+, PostgreSQL, Redis.
 
 ```bash
 git clone https://github.com/ffx64/frontline-stats
 cd frontline-stats
 
-cp .env.example .env  # ajuste as variáveis
+cp .env.example .env  # fill in your values
 go mod download
 APP_ENV=dev go run ./cmd/main.go
 ```
 
-Para rodar em modo `test`, o banco é SQLite in-memory, sem precisar de PostgreSQL.
+In `test` mode the database is SQLite in-memory, no PostgreSQL needed.
 
 **Build:**
 ```bash
@@ -123,13 +123,13 @@ go build -o frontline-stats ./cmd/main.go
 
 ---
 
-## Variáveis de Ambiente
+## Environment Variables
 
 ```env
-APP_ENV=prod              # dev | prod | test  (padrão: test)
+APP_ENV=prod              # dev | prod | test  (default: test)
 GIN_PORT=8080
 
-API_KEY=                  # se definido, exige header Authorization em todas as rotas
+API_KEY=                  # if set, requires Authorization header on all routes
 
 POSTGRESQL_HOST=
 POSTGRESQL_PORT=
@@ -147,56 +147,56 @@ REDIS_PASSWORD=
 
 ## API
 
-Base path: `/api/v1`. Autenticação via header `Authorization: <API_KEY>`.
+Base path: `/api/v1`. Authentication via `Authorization: <API_KEY>` header.
 
 <details>
 <summary><strong>Players</strong></summary>
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/players` | Cria um jogador |
-| `GET` | `/players/:guid` | Busca por GUID |
-| `PUT` | `/players/:guid` | Atualiza dados |
-| `GET` | `/players/:guid/stats` | Estatísticas do jogador |
-| `GET` | `/players/if-not-exists-create/:username/:guid/:serverLastID` | Cria se não existir |
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/players` | Create a player |
+| `GET` | `/players/:guid` | Get by GUID |
+| `PUT` | `/players/:guid` | Update player data |
+| `GET` | `/players/:guid/stats` | Get player stats |
+| `GET` | `/players/if-not-exists-create/:username/:guid/:serverLastID` | Create if not exists |
 
 </details>
 
 <details>
 <summary><strong>Rounds</strong></summary>
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/rounds` | Inicia um round |
-| `GET` | `/rounds/:id` | Busca por ID |
-| `PUT` | `/rounds/:id/ended` | Finaliza o round |
-| `GET` | `/rounds/:id/scoreboard` | Placar do round |
-| `GET` | `/rounds/server/:serverId/player/:playerId` | Histórico paginado |
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/rounds` | Start a round |
+| `GET` | `/rounds/:id` | Get by ID |
+| `PUT` | `/rounds/:id/ended` | End a round |
+| `GET` | `/rounds/:id/scoreboard` | Round scoreboard |
+| `GET` | `/rounds/server/:serverId/player/:playerId` | Paginated round history |
 
 </details>
 
 <details>
-<summary><strong>Servidores</strong></summary>
+<summary><strong>Servers</strong></summary>
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/servers` | Registra um servidor |
-| `GET` | `/servers` | Lista servidores |
-| `GET` | `/servers/:id` | Busca por ID |
-| `PUT` | `/servers/:id` | Atualiza |
-| `DELETE` | `/servers/:id` | Remove |
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/servers` | Register a server |
+| `GET` | `/servers` | List all servers |
+| `GET` | `/servers/:id` | Get by ID |
+| `PUT` | `/servers/:id` | Update server |
+| `DELETE` | `/servers/:id` | Delete server |
 
 </details>
 
 <details>
-<summary><strong>Eventos & Leaderboard</strong></summary>
+<summary><strong>Events & Leaderboard</strong></summary>
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/events/kill` | Recebe batch de kills do mod |
-| `GET` | `/leaderboard` | Top 20 por kills |
-| `GET` | `/leaderboard/headshots` | Top 20 por headshots |
-| `GET` | `/leaderboard/vehicles` | Top 20 por vehicle kills |
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/events/kill` | Ingest kill events batch from mod |
+| `GET` | `/leaderboard` | Top 20 by kills |
+| `GET` | `/leaderboard/headshots` | Top 20 by headshots |
+| `GET` | `/leaderboard/vehicles` | Top 20 by vehicle kills |
 
 </details>
 
@@ -204,22 +204,22 @@ Base path: `/api/v1`. Autenticação via header `Authorization: <API_KEY>`.
 
 ## Cache
 
-Endpoints de leitura são cacheados no Redis. Se o Redis estiver fora, o sistema cai silenciosamente para o banco.
+Read endpoints are cached in Redis. If Redis is unavailable, requests fall through to the database silently.
 
-| Chave | TTL | Quando invalida |
-|-------|-----|-----------------|
+| Key | TTL | Invalidated by |
+|-----|-----|----------------|
 | `player:{guid}` | 30 min | `PUT /players/:guid` |
 | `player:stats:{guid}` | 14 min | `PUT /players/:guid` |
-| `leaderboard:*` | 5 min | cron a cada 15 min |
+| `leaderboard:*` | 5 min | cron every 15 min |
 | `round:{id}` | 5 min | `PUT /rounds/:id/ended` |
-| `round:scoreboard:{id}` | 5 min | cron a cada 5 min |
+| `round:scoreboard:{id}` | 5 min | cron every 5 min |
 | `server:{id}` | 60 min | `PUT /servers/:id` |
 
 ---
 
-## Jobs periódicos
+## Background Jobs
 
-Dois jobs rodam em background com `pg_try_advisory_xact_lock`, garantindo que só uma instância processa por vez mesmo em deploy multi-replica.
+Two jobs run in the background using `pg_try_advisory_xact_lock`, ensuring only one instance processes at a time even in multi-replica deployments.
 
-- **A cada 15 min:** recalcula `players_stats` - kills, deaths, KDR, headshots, vehicle kills, armas e hit zones mais usadas
-- **A cada 5 min:** recalcula `rounds_stats` para todos os rounds com status `in_progress`
+- **Every 15 min:** recalculates `players_stats` - kills, deaths, KDR, headshots, vehicle kills, most used weapons and hit zones
+- **Every 5 min:** recalculates `rounds_stats` for all rounds with status `in_progress`
