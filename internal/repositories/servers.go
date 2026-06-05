@@ -30,10 +30,10 @@ func NewServersRepository(db *gorm.DB) ServersRepository {
 func (r *serverRepository) Save(ctx context.Context, server *entities.Servers) (*entities.Servers, error) {
 	tx := r.db.WithContext(ctx).Create(server)
 	if tx.Error != nil {
-		log.Printf("[repository:servers] erro ao criar servidor: %v", tx.Error)
-		return nil, fmt.Errorf("erro ao criar servidor: %w", tx.Error)
+		log.Printf("[repository:servers] failed to create server: %v", tx.Error)
+		return nil, fmt.Errorf("failed to create server: %w", tx.Error)
 	}
-	log.Printf("[repository:servers] servidor criado: %v", server.ID)
+	log.Printf("[repository:servers] server created: %v", server.ID)
 	return server, nil
 }
 
@@ -42,13 +42,13 @@ func (r *serverRepository) FindByID(ctx context.Context, id uuid.UUID) (*entitie
 	tx := r.db.WithContext(ctx).First(&server, "id = ?", id)
 	if tx.Error != nil {
 		if tx.Error == gorm.ErrRecordNotFound {
-			log.Printf("[repository:servers] nenhum servidor encontrado com id: %v", id)
+			log.Printf("[repository:servers] no server found with id: %v", id)
 			return nil, nil
 		}
-		log.Printf("[repository:servers] erro ao buscar servidor por id %v: %v", id, tx.Error)
-		return nil, fmt.Errorf("erro ao buscar servidor por id: %w", tx.Error)
+		log.Printf("[repository:servers] failed to find server by id %v: %v", id, tx.Error)
+		return nil, fmt.Errorf("failed to find server by id: %w", tx.Error)
 	}
-	log.Printf("[repository:servers] servidor recuperado: %v", server.ID)
+	log.Printf("[repository:servers] server retrieved: %v", server.ID)
 	return &server, nil
 }
 
@@ -57,13 +57,13 @@ func (r *serverRepository) FindByName(ctx context.Context, name string) (*entiti
 	tx := r.db.WithContext(ctx).First(&server, "name = ?", name)
 	if tx.Error != nil {
 		if tx.Error == gorm.ErrRecordNotFound {
-			log.Printf("[repository:servers] nenhum servidor encontrado com name: %v", name)
+			log.Printf("[repository:servers] no server found with name: %v", name)
 			return nil, nil
 		}
-		log.Printf("[repository:servers] erro ao buscar servidor por name %v: %v", name, tx.Error)
-		return nil, fmt.Errorf("erro ao buscar servidor por name: %w", tx.Error)
+		log.Printf("[repository:servers] failed to find server by name %v: %v", name, tx.Error)
+		return nil, fmt.Errorf("failed to find server by name: %w", tx.Error)
 	}
-	log.Printf("[repository:servers] servidor recuperado: %v", server.ID)
+	log.Printf("[repository:servers] server retrieved: %v", server.ID)
 	return &server, nil
 }
 
@@ -71,10 +71,10 @@ func (r *serverRepository) FindAll(ctx context.Context) ([]entities.Servers, err
 	var servers []entities.Servers
 	tx := r.db.WithContext(ctx).Order("created_at DESC").Find(&servers)
 	if tx.Error != nil {
-		log.Printf("[repository:servers] erro ao listar servidores: %v", tx.Error)
-		return nil, fmt.Errorf("erro ao listar servidores: %w", tx.Error)
+		log.Printf("[repository:servers] failed to list servers: %v", tx.Error)
+		return nil, fmt.Errorf("failed to list servers: %w", tx.Error)
 	}
-	log.Printf("[repository:servers] %d servidores recuperados", len(servers))
+	log.Printf("[repository:servers] %d servers retrieved", len(servers))
 	return servers, nil
 }
 
@@ -86,35 +86,35 @@ func (r *serverRepository) Update(ctx context.Context, server *entities.Servers)
 		})
 
 	if tx.Error != nil {
-		log.Printf("[repository:servers] erro ao atualizar servidor %v: %v", server.ID, tx.Error)
-		return nil, fmt.Errorf("erro ao atualizar servidor: %w", tx.Error)
+		log.Printf("[repository:servers] failed to update server %v: %v", server.ID, tx.Error)
+		return nil, fmt.Errorf("failed to update server: %w", tx.Error)
 	}
 
 	if tx.RowsAffected == 0 {
-		log.Printf("[repository:servers] nenhum servidor encontrado com id: %v", server.ID)
-		return nil, fmt.Errorf("nenhum servidor encontrado com o id %s", server.ID)
+		log.Printf("[repository:servers] no server found with id: %v", server.ID)
+		return nil, fmt.Errorf("no server found with id %s", server.ID)
 	}
 
 	updated, err := r.FindByID(ctx, server.ID)
 	if err != nil {
-		log.Printf("[repository:servers] erro ao buscar servidor atualizado %v: %v", server.ID, err)
+		log.Printf("[repository:servers] failed to find updated server %v: %v", server.ID, err)
 		return nil, err
 	}
 
-	log.Printf("[repository:servers] servidor atualizado: %v", updated.ID)
+	log.Printf("[repository:servers] server updated: %v", updated.ID)
 	return updated, nil
 }
 
 func (r *serverRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	tx := r.db.WithContext(ctx).Delete(&entities.Servers{}, "id = ?", id)
 	if tx.Error != nil {
-		log.Printf("[repository:servers] erro ao deletar servidor %v: %v", id, tx.Error)
-		return fmt.Errorf("erro ao deletar servidor: %w", tx.Error)
+		log.Printf("[repository:servers] failed to delete server %v: %v", id, tx.Error)
+		return fmt.Errorf("failed to delete server: %w", tx.Error)
 	}
 	if tx.RowsAffected == 0 {
-		log.Printf("[repository:servers] nenhum servidor encontrado para deletar com id: %v", id)
-		return fmt.Errorf("nenhum servidor encontrado com o id %s", id)
+		log.Printf("[repository:servers] no server found to delete with id: %v", id)
+		return fmt.Errorf("no server found with id %s", id)
 	}
-	log.Printf("[repository:servers] servidor deletado: %v", id)
+	log.Printf("[repository:servers] server deleted: %v", id)
 	return nil
 }

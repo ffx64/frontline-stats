@@ -32,10 +32,10 @@ func NewKillsRepository(db *gorm.DB) KillsRepository {
 
 func (r *killsRepository) Save(ctx context.Context, kill *entities.Kills) error {
 	if err := r.db.WithContext(ctx).Create(kill).Error; err != nil {
-		log.Printf("[repository:kills] erro ao salvar kill log: %v", err)
+		log.Printf("[repository:kills] failed to save kill: %v", err)
 		return err
 	}
-	log.Printf("[repository:kills] kill log salvo com sucesso: %v", kill.ID)
+	log.Printf("[repository:kills] kill saved successfully: %v", kill.ID)
 	return nil
 }
 
@@ -46,10 +46,10 @@ func (r *killsRepository) GetKillsByPlayerID(ctx context.Context, playerID uuid.
 		Find(&kills).Error
 
 	if err != nil {
-		log.Printf("[repository:kills] erro ao buscar kills do jogador %s: %v", playerID, err)
+		log.Printf("[repository:kills] failed to get kills for player %s: %v", playerID, err)
 		return nil, err
 	}
-	log.Printf("[repository:kills] recuperadas %d kills do jogador %s", len(kills), playerID)
+	log.Printf("[repository:kills] retrieved %d kills for player %s", len(kills), playerID)
 	return kills, nil
 }
 
@@ -60,10 +60,10 @@ func (r *killsRepository) GetDeathsByPlayerID(ctx context.Context, playerID uuid
 		Find(&deaths).Error
 
 	if err != nil {
-		log.Printf("[repository:kills] erro ao buscar deaths do jogador %s: %v", playerID, err)
+		log.Printf("[repository:kills] failed to get deaths for player %s: %v", playerID, err)
 		return nil, err
 	}
-	log.Printf("[repository:kills] recuperadas %d deaths do jogador %s", len(deaths), playerID)
+	log.Printf("[repository:kills] retrieved %d deaths for player %s", len(deaths), playerID)
 	return deaths, nil
 }
 
@@ -74,10 +74,10 @@ func (r *killsRepository) GetKillsForPlayerByServerID(ctx context.Context, playe
 		Find(&kills).Error
 
 	if err != nil {
-		log.Printf("[repository:kills] erro ao buscar kills por servidor para jogador %s: %v", playerID, err)
+		log.Printf("[repository:kills] failed to get kills by server for player %s: %v", playerID, err)
 		return nil, err
 	}
-	log.Printf("[repository:kills] recuperadas %d kills do jogador %s no servidor %s", len(kills), playerID, serverID)
+	log.Printf("[repository:kills] retrieved %d kills for player %s on server %s", len(kills), playerID, serverID)
 	return kills, nil
 }
 
@@ -88,10 +88,10 @@ func (r *killsRepository) GetDeathsForPlayerByServerID(ctx context.Context, play
 		Find(&kills).Error
 
 	if err != nil {
-		log.Printf("[repository:kills] erro ao buscar deaths por servidor para jogador %s: %v", playerID, err)
+		log.Printf("[repository:kills] failed to get deaths by server for player %s: %v", playerID, err)
 		return nil, err
 	}
-	log.Printf("[repository:kills] recuperadas %d deaths do jogador %s no servidor %s", len(kills), playerID, serverID)
+	log.Printf("[repository:kills] retrieved %d deaths for player %s on server %s", len(kills), playerID, serverID)
 	return kills, nil
 }
 
@@ -102,10 +102,10 @@ func (r *killsRepository) GetKillsForPlayerByRoundID(ctx context.Context, player
 		Find(&kills).Error
 
 	if err != nil {
-		log.Printf("[repository:kills] erro ao buscar kills por round para jogador %s: %v", playerID, err)
+		log.Printf("[repository:kills] failed to get kills by round for player %s: %v", playerID, err)
 		return nil, err
 	}
-	log.Printf("[repository:kills] recuperadas %d kills do jogador %s no round %s", len(kills), playerID, roundID)
+	log.Printf("[repository:kills] retrieved %d kills for player %s in round %s", len(kills), playerID, roundID)
 	return kills, nil
 }
 
@@ -116,10 +116,10 @@ func (r *killsRepository) GetDeathsForPlayerByRoundID(ctx context.Context, playe
 		Find(&kills).Error
 
 	if err != nil {
-		log.Printf("[repository:kills] erro ao buscar deaths por round para jogador %s: %v", playerID, err)
+		log.Printf("[repository:kills] failed to get deaths by round for player %s: %v", playerID, err)
 		return nil, err
 	}
-	log.Printf("[repository:kills] recuperadas %d deaths do jogador %s no round %s", len(kills), playerID, roundID)
+	log.Printf("[repository:kills] retrieved %d deaths for player %s in round %s", len(kills), playerID, roundID)
 	return kills, nil
 }
 
@@ -132,16 +132,16 @@ func (r *killsRepository) GetTop10KillsAndDeathByPlayerID(ctx context.Context, p
 		Find(&kills).Error
 
 	if err != nil {
-		log.Printf("[repository:kills] erro ao buscar top 10 kills/deaths do jogador %s: %v", playerID, err)
+		log.Printf("[repository:kills] failed to get top 10 kills/deaths for player %s: %v", playerID, err)
 		return nil, err
 	}
-	log.Printf("[repository:kills] recuperadas %d kills/deaths top 10 do jogador %s", len(kills), playerID)
+	log.Printf("[repository:kills] retrieved %d top 10 kills/deaths for player %s", len(kills), playerID)
 	return kills, nil
 }
 
 func (r *killsRepository) SaveBatch(ctx context.Context, kills []*entities.Kills, size int) error {
 	if len(kills) == 0 {
-		log.Println("[repository:kills] warn: nenhuma kill para salvar em batch")
+		log.Println("[repository:kills] warn: no kills to save in batch")
 		return nil
 	}
 
@@ -150,10 +150,10 @@ func (r *killsRepository) SaveBatch(ctx context.Context, kills []*entities.Kills
 	}
 
 	if err := r.db.WithContext(ctx).CreateInBatches(kills, size).Error; err != nil {
-		log.Printf("[repository:kills] erro ao salvar batch de kill logs: %v", err)
+		log.Printf("[repository:kills] failed to save kill batch: %v", err)
 		return err
 	}
 
-	log.Printf("[repository:kills] %d kill logs salvos com sucesso em batch de %d", len(kills), size)
+	log.Printf("[repository:kills] %d kills saved in batch of %d", len(kills), size)
 	return nil
 }
