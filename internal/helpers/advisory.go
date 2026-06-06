@@ -7,9 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// AdvisoryLock begins a transaction and attempts to acquire a transaction-level advisory lock.
-// Returns (nil, nil) if the lock is already held by another instance.
-// The lock is released automatically when the transaction is committed or rolled back.
 func AdvisoryLock(ctx context.Context, db *gorm.DB, key string) (*gorm.DB, error) {
 	tx := db.WithContext(ctx).Begin()
 	if tx.Error != nil {
