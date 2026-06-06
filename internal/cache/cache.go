@@ -29,8 +29,6 @@ func KeyRound(id string) string           { return fmt.Sprintf("round:%s", id) }
 func KeyScoreboard(roundID string) string { return fmt.Sprintf("round:scoreboard:%s", roundID) }
 func KeyServer(id string) string          { return fmt.Sprintf("server:%s", id) }
 
-// Get fetches a cached value and deserializes it into T.
-// Returns (nil, nil) on cache miss. Returns (nil, err) on Redis error.
 func Get[T any](ctx context.Context, rdb *redis.Client, key string) (*T, error) {
 	if rdb == nil {
 		return nil, nil
@@ -49,8 +47,6 @@ func Get[T any](ctx context.Context, rdb *redis.Client, key string) (*T, error) 
 	return &result, nil
 }
 
-// Set serializes value and stores it with the given TTL.
-// A Redis error is logged but not returned — cache writes are non-fatal.
 func Set(ctx context.Context, rdb *redis.Client, key string, value any, ttl time.Duration) {
 	if rdb == nil {
 		return
@@ -65,7 +61,6 @@ func Set(ctx context.Context, rdb *redis.Client, key string, value any, ttl time
 	}
 }
 
-// Delete removes one or more keys. Errors are logged but not returned.
 func Delete(ctx context.Context, rdb *redis.Client, keys ...string) {
 	if rdb == nil || len(keys) == 0 {
 		return
@@ -75,8 +70,6 @@ func Delete(ctx context.Context, rdb *redis.Client, keys ...string) {
 	}
 }
 
-// DeletePattern removes all keys matching a glob pattern using SCAN.
-// Errors are logged but not returned.
 func DeletePattern(ctx context.Context, rdb *redis.Client, pattern string) {
 	if rdb == nil {
 		return
